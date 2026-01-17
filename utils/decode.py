@@ -13,21 +13,19 @@ class Decode(object):
         self.blank_id = blank_id
 
         # Fake vocab giống code cũ (mỗi class = 1 token)
-        self.vocab = [str(i) for i in range(num_classes)]
+        self.vocab = [str(i) for i in range(num_classes-1)]
 
-        self.ctc_decoder = build_ctcdecoder(
-            self.vocab,
-            blank_token=self.vocab[blank_id],
-        )
+        self.ctc_decoder = build_ctcdecoder(self.vocab)
 
     def decode(self, nn_output, vid_lgt, batch_first=True, probs=False):
         if not batch_first:
             nn_output = nn_output.permute(1, 0, 2)
 
-        if self.search_mode == "max":
-            return self.MaxDecode(nn_output, vid_lgt)
-        else:
-            return self.BeamSearch(nn_output, vid_lgt, probs)
+        # if self.search_mode == "max":
+        #     return self.MaxDecode(nn_output, vid_lgt)
+        # else:
+        #     return self.BeamSearch(nn_output, vid_lgt, probs)
+        return self.MaxDecode(nn_output, vid_lgt)
 
     def BeamSearch(self, nn_output, vid_lgt, probs=False):
         """
@@ -42,12 +40,13 @@ class Decode(object):
         ret_list = []
 
         for b in range(nn_output.shape[0]):
-            logits = nn_output[b][:vid_lgt[b]]
+            T = int(vid_lgt[b].item())
+            logits = nn_output[b][:T]
 
             decoded = self.ctc_decoder.decode(logits)
 
             # decoded là string "0 3 5 ..."
-            ids = [int(x) for x in decoded.split()] if decoded else []
+            ids = [int(x) for x in decoded] if decoded else []
 
             # remove duplicate (CTC collapse)
             ids = [x for x, _ in groupby(ids)]
@@ -65,9 +64,11 @@ class Decode(object):
         ret_list = []
 
         for batch_idx in range(batchsize):
+            T = int(vid_lgt[batch_idx].item())
+
             group_result = [
                 x[0]
-                for x in groupby(index_list[batch_idx][:vid_lgt[batch_idx]])
+                for x in groupby(index_list[batch_idx][:T])
             ]
 
             filtered = list(filter(lambda x: x != self.blank_id, group_result))

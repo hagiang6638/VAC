@@ -9,7 +9,7 @@ batch_size: 1
 test_batch_size: 1
 num_worker: 0
 
-device: -1
+device: 0
 log_interval: 10
 eval_interval: 1
 save_interval: 1
@@ -22,7 +22,11 @@ loss_weights:
 optimizer_args:
   optimizer: Adam
   base_lr: 0.0001
+  step: [ 20, 35]
+  learning_ratio: 1
+  weight_decay: 0.0001
   start_epoch: 0
+  nesterov: False
 
 feeder_args:
   mode: 'train'
@@ -30,7 +34,7 @@ feeder_args:
   drop_ratio: 1.0
 
 model: slr_network.SLRModel
-decode_mode: beam
+decode_mode: max
 model_args:
   c2d_type: resnet18
   conv_type: 2

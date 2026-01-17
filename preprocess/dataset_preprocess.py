@@ -89,7 +89,7 @@ if __name__ == '__main__':
         description='Data process for Visual Alignment Constraint for Continuous Sign Language Recognition.')
     parser.add_argument('--dataset', type=str, default='VietNamese-SL',
                         help='save prefix')
-    parser.add_argument('--dataset-root', type=str, default='/content/VAC_CSLR/dataset/VietNamese-SL',
+    parser.add_argument('--dataset-root', type=str, default='./dataset/VietNamese-SL',
                         help='path to the dataset')
     parser.add_argument('--annotation-prefix', type=str, default='annotations/{}.corpus.csv',
                         help='annotation prefix')
