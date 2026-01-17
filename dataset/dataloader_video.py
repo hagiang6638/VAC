@@ -31,9 +31,9 @@ class BaseFeeder(data.Dataset):
         self.prefix = prefix
         self.dict = gloss_dict
         self.data_type = datatype
-        self.feat_prefix = f"{prefix}/features/fullFrame-256x256px/{mode}"
+        self.feat_prefix = f"{prefix}/features/{mode}"
         self.transform_mode = "train" if transform_mode else "test"
-        self.inputs_list = np.load(f"./preprocess/phoenix2014/{mode}_info.npy", allow_pickle=True).item()
+        self.inputs_list = np.load(f"./VietNamese-SL/{mode}_info.npy", allow_pickle=True).item()
         # self.inputs_list = np.load(f"{prefix}/annotations/manual/{mode}.corpus.npy", allow_pickle=True).item()
         # self.inputs_list = np.load(f"{prefix}/annotations/manual/{mode}.corpus.npy", allow_pickle=True).item()
         # self.inputs_list = dict([*filter(lambda x: isinstance(x[0], str) or x[0] < 10, self.inputs_list.items())])
@@ -58,7 +58,7 @@ class BaseFeeder(data.Dataset):
     def read_video(self, index, num_glosses=-1):
         # load file info
         fi = self.inputs_list[index]
-        img_folder = os.path.join(self.prefix, "features/fullFrame-256x256px/" + fi['folder'])
+        img_folder = os.path.join(self.prefix, "features/" + fi['folder'])
         img_list = sorted(glob.glob(img_folder))
         label_list = []
         for phase in fi['label'].split(" "):
