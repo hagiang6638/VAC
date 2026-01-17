@@ -1,11 +1,7 @@
-import os
-import pdb
-import time
 import torch
-import ctcdecode
 import numpy as np
 from itertools import groupby
-import torch.nn.functional as F
+from pyctcdecode import build_ctcdecoder
 
 
 class Decode(object):
@@ -15,52 +11,75 @@ class Decode(object):
         self.num_classes = num_classes
         self.search_mode = search_mode
         self.blank_id = blank_id
-        vocab = [chr(x) for x in range(20000, 20000 + num_classes)]
-        self.ctc_decoder = ctcdecode.CTCBeamDecoder(vocab, beam_width=10, blank_id=blank_id,
-                                                    num_processes=10)
+
+        # Fake vocab giống code cũ (mỗi class = 1 token)
+        self.vocab = [str(i) for i in range(num_classes)]
+
+        self.ctc_decoder = build_ctcdecoder(
+            self.vocab,
+            blank_token=self.vocab[blank_id],
+        )
 
     def decode(self, nn_output, vid_lgt, batch_first=True, probs=False):
         if not batch_first:
             nn_output = nn_output.permute(1, 0, 2)
+
         if self.search_mode == "max":
             return self.MaxDecode(nn_output, vid_lgt)
         else:
             return self.BeamSearch(nn_output, vid_lgt, probs)
 
     def BeamSearch(self, nn_output, vid_lgt, probs=False):
-        '''
-        CTCBeamDecoder Shape:
-                - Input:  nn_output (B, T, N), which should be passed through a softmax layer
-                - Output: beam_resuls (B, N_beams, T), int, need to be decoded by i2g_dict
-                          beam_scores (B, N_beams), p=1/np.exp(beam_score)
-                          timesteps (B, N_beams)
-                          out_lens (B, N_beams)
-        '''
+        """
+        nn_output: (B, T, C)
+        """
         if not probs:
-            nn_output = nn_output.softmax(-1).cpu()
-        vid_lgt = vid_lgt.cpu()
-        beam_result, beam_scores, timesteps, out_seq_len = self.ctc_decoder.decode(nn_output, vid_lgt)
+            nn_output = torch.softmax(nn_output, dim=-1)
+
+        nn_output = nn_output.cpu().numpy()
+        vid_lgt = vid_lgt.cpu().numpy()
+
         ret_list = []
-        for batch_idx in range(len(nn_output)):
-            first_result = beam_result[batch_idx][0][:out_seq_len[batch_idx][0]]
-            if len(first_result) != 0:
-                first_result = torch.stack([x[0] for x in groupby(first_result)])
-            ret_list.append([(self.i2g_dict[int(gloss_id)], idx) for idx, gloss_id in
-                             enumerate(first_result)])
+
+        for b in range(nn_output.shape[0]):
+            logits = nn_output[b][:vid_lgt[b]]
+
+            decoded = self.ctc_decoder.decode(logits)
+
+            # decoded là string "0 3 5 ..."
+            ids = [int(x) for x in decoded.split()] if decoded else []
+
+            # remove duplicate (CTC collapse)
+            ids = [x for x, _ in groupby(ids)]
+
+            ret_list.append([
+                (self.i2g_dict[int(gloss_id)], idx)
+                for idx, gloss_id in enumerate(ids)
+            ])
+
         return ret_list
 
     def MaxDecode(self, nn_output, vid_lgt):
         index_list = torch.argmax(nn_output, axis=2)
-        batchsize, lgt = index_list.shape
+        batchsize, _ = index_list.shape
         ret_list = []
+
         for batch_idx in range(batchsize):
-            group_result = [x[0] for x in groupby(index_list[batch_idx][:vid_lgt[batch_idx]])]
-            filtered = [*filter(lambda x: x != self.blank_id, group_result)]
+            group_result = [
+                x[0]
+                for x in groupby(index_list[batch_idx][:vid_lgt[batch_idx]])
+            ]
+
+            filtered = list(filter(lambda x: x != self.blank_id, group_result))
+
             if len(filtered) > 0:
-                max_result = torch.stack(filtered)
-                max_result = [x[0] for x in groupby(max_result)]
+                max_result = [x[0] for x in groupby(filtered)]
             else:
-                max_result = filtered
-            ret_list.append([(self.i2g_dict[int(gloss_id)], idx) for idx, gloss_id in
-                             enumerate(max_result)])
+                max_result = []
+
+            ret_list.append([
+                (self.i2g_dict[int(gloss_id)], idx)
+                for idx, gloss_id in enumerate(max_result)
+            ])
+
         return ret_list
