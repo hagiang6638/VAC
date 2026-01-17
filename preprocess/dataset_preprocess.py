@@ -13,12 +13,10 @@ from multiprocessing import Pool
 
 def csv2dict(anno_path, dataset_type):
     inputs_list = pandas.read_csv(anno_path)
-    if dataset_type == 'train':
-        broken_data = [2390]
-        inputs_list.drop(broken_data, inplace=True)
+
     inputs_list = (inputs_list.to_dict()['id|folder|signer|annotation'].values())
     info_dict = dict()
-    info_dict['prefix'] = anno_path.rsplit("/", 3)[0] + "/features/fullFrame-210x260px"
+    info_dict['prefix'] = anno_path.rsplit("/", 3)[0] + "/features"
     print(f"Generate information dict from {anno_path}")
     for file_idx, file_info in tqdm(enumerate(inputs_list), total=len(inputs_list)):
         fileid, folder, signer, label = file_info.split("|")
@@ -89,11 +87,11 @@ def run_cmd(func, args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Data process for Visual Alignment Constraint for Continuous Sign Language Recognition.')
-    parser.add_argument('--dataset', type=str, default='phoenix2014',
+    parser.add_argument('--dataset', type=str, default='VietNamese-SL',
                         help='save prefix')
-    parser.add_argument('--dataset-root', type=str, default='../dataset/phoenix2014/phoenix-2014-multisigner',
+    parser.add_argument('--dataset-root', type=str, default='/content/VAC_CSLR/dataset/VietNamese-SL',
                         help='path to the dataset')
-    parser.add_argument('--annotation-prefix', type=str, default='annotations/manual/{}.corpus.csv',
+    parser.add_argument('--annotation-prefix', type=str, default='annotations/{}.corpus.csv',
                         help='annotation prefix')
     parser.add_argument('--output-res', type=str, default='256x256px',
                         help='resize resolution for image sequence')
