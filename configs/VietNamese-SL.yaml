@@ -1,0 +1,4 @@
+dataset_root: ./dataset/VietNamese-SL
+dict_path: ./VietNamese-SL/gloss_dict.npy
+evaluation_dir: ./evaluation/slr_eval
+evaluation_prefix: phoenix2014-groundtruth
