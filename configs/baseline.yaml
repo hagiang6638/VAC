@@ -34,7 +34,7 @@ feeder_args:
   drop_ratio: 1.0
 
 model: slr_network.SLRModel
-decode_mode: max
+decode_mode: beam
 model_args:
   c2d_type: resnet18
   conv_type: 2
