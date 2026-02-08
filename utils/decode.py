@@ -10,10 +10,12 @@ class Decode(object):
         self.g2i_dict = {v: k for k, v in self.i2g_dict.items()}
         self.num_classes = num_classes
         self.search_mode = search_mode
-        self.blank_id = blank_id
 
-        # Fake vocab giống code cũ (mỗi class = 1 token)
-        self.vocab = [str(i) for i in range(num_classes-1)]
+        # self.blank_id = blank_id
+        # self.vocab = [str(i) for i in range(num_classes)]
+
+        self.blank_id = num_classes - 1
+        self.vocab = [str(i) for i in range(num_classes - 1)]
 
         self.ctc_decoder = build_ctcdecoder(self.vocab)
 
@@ -21,11 +23,11 @@ class Decode(object):
         if not batch_first:
             nn_output = nn_output.permute(1, 0, 2)
 
-        # if self.search_mode == "max":
-        #     return self.MaxDecode(nn_output, vid_lgt)
-        # else:
-        #     return self.BeamSearch(nn_output, vid_lgt, probs)
-        return self.MaxDecode(nn_output, vid_lgt)
+        if self.search_mode == "max":
+            return self.MaxDecode(nn_output, vid_lgt)
+        else:
+            return self.BeamSearch(nn_output, vid_lgt, probs)
+        #return self.MaxDecode(nn_output, vid_lgt)
 
     def BeamSearch(self, nn_output, vid_lgt, probs=False):
         """
@@ -51,10 +53,25 @@ class Decode(object):
             # remove duplicate (CTC collapse)
             ids = [x for x, _ in groupby(ids)]
 
-            ret_list.append([
-                (self.i2g_dict[int(gloss_id)], idx)
-                for idx, gloss_id in enumerate(ids)
-            ])
+            # ret_list.append([
+            #     (self.i2g_dict[int(gloss_id)], idx)
+            #     for idx, gloss_id in enumerate(ids)
+            # ])
+
+            sent = []
+            for idx, gloss_id in enumerate(ids):
+                gloss_id = int(gloss_id)
+
+                # bỏ blank hoặc id không tồn tại
+                if gloss_id == self.blank_id:
+                    continue
+                if gloss_id not in self.i2g_dict:
+                    continue
+
+                sent.append((self.i2g_dict[gloss_id], idx))
+
+            ret_list.append(sent)
+
 
         return ret_list
 
