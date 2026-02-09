@@ -117,7 +117,8 @@ class Processor():
         model = convert_model(model)
         model.cuda()
         return model
-
+    
+    """
     def load_model_weights(self, model, weight_path):
         state_dict = torch.load(weight_path, weights_only=False)
         if len(self.arg.ignore_weights):
@@ -129,6 +130,25 @@ class Processor():
         weights = self.modified_weights(state_dict['model_state_dict'], False)
         # weights = self.modified_weights(state_dict['model_state_dict'])
         model.load_state_dict(weights, strict=True)
+    """
+
+    def load_model_weights(self, model, weight_path):
+        print(f"Loading weights from {weight_path}")
+        state_dict = torch.load(weight_path, map_location='cpu', weights_only=False)
+
+        model_dict = model.state_dict()
+        new_state_dict = {}
+
+        for k, v in state_dict.items():
+            if k not in model_dict:
+                continue
+            if v.shape != model_dict[k].shape:
+                print(f"Skip loading {k}: {v.shape} -> {model_dict[k].shape}")
+                continue
+            new_state_dict[k] = v
+
+        model_dict.update(new_state_dict)
+        model.load_state_dict(model_dict)
 
     @staticmethod
     def modified_weights(state_dict, modified=False):

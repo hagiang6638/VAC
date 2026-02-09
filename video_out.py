@@ -2,12 +2,12 @@ import cv2
 import os
 
 # Thư mục chứa frame
-img_dir = "1_frames"
+img_dir = "D:\\CSLR\\Phoenix-2014\\01April_2010_Thursday_heute_default-1"
 # Video output
-output_video = "output_1.mp4"
+output_video = "D:\\CSLR\\Phoenix-2014\\01April_2010_Thursday_heute_default-1_25fps.mp4"
 
 # FPS của video
-fps = 10
+fps = 25
 
 # Lấy danh sách ảnh (đã sort)
 images = sorted([
